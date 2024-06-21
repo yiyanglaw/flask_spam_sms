@@ -117,7 +117,7 @@ def predict_spam_sms():
     
     def insert_prediction(cursor):
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        query = "INSERT INTO sms_spam_predictions (text, result, created_at) VALUES (%s, %s, %s)"
+        query = "INSERT INTO sms_predictions (text, result, created_at) VALUES (%s, %s, %s)"
         values = (text[:255], result, current_time)
         cursor.execute(query, values)
 
@@ -128,7 +128,7 @@ def predict_spam_sms():
 @app.route('/sms/history', methods=['GET'])
 def get_sms_spam_history():
     def fetch_history(cursor):
-        query = "SELECT text, result, created_at FROM sms_spam_predictions ORDER BY created_at DESC LIMIT 50"
+        query = "SELECT text, result, created_at FROM sms_predictions ORDER BY created_at DESC LIMIT 50"
         cursor.execute(query)
         return cursor.fetchall()
 
