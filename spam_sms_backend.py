@@ -26,12 +26,41 @@ db_config = {
 
 connection_pool = mysql.connector.pooling.MySQLConnectionPool(
     pool_name="mypool",
-    pool_size=5,
+    pool_size=3,  # Reduced pool size
     **db_config
 )
 
 def get_db_connection():
-    return connection_pool.get_connection()
+    try:
+        return connection_pool.get_connection()
+    except mysql.connector.errors.PoolError as e:
+        print(f"Error getting connection from pool: {e}")
+        time.sleep(1)  # wait before retrying
+        return get_db_connection()
+
+def execute_db_operation(operation):
+    max_retries = 3
+    retry_delay = 1
+
+    for attempt in range(max_retries):
+        connection = None
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor()
+            result = operation(cursor)
+            connection.commit()
+            return result
+        except mysql.connector.Error as err:
+            print(f"Database error: {err}")
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                retry_delay *= 2
+            else:
+                raise
+        finally:
+            if connection and connection.is_connected():
+                cursor.close()
+                connection.close()
 
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -78,29 +107,6 @@ f1 = f1_score(y_test, y_pred)
 
 print(f'Accuracy: {accuracy:.4f}')
 print(f'F1 Score: {f1:.4f}')
-
-def execute_db_operation(operation):
-    max_retries = 3
-    retry_delay = 1
-
-    for attempt in range(max_retries):
-        try:
-            connection = get_db_connection()
-            cursor = connection.cursor()
-            result = operation(cursor)
-            connection.commit()
-            return result
-        except mysql.connector.Error as err:
-            print(f"Database error: {err}")
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                retry_delay *= 2
-            else:
-                raise
-        finally:
-            if 'connection' in locals() and connection.is_connected():
-                cursor.close()
-                connection.close()
 
 @app.route('/sms/predict_spam', methods=['POST'])
 def predict_spam_sms():
