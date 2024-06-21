@@ -7,4 +7,3 @@ Cython>=0.29.24
 nltk
 mysql.connector
 datetime
-time
